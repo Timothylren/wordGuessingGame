@@ -76,7 +76,7 @@ class Model {
 
     checkLetter(letter) {
         for (let i = 0; i < this.currentWord.length; i++) {
-            if (this.currentWord[i].toLowerCase() === letter.toLowerCase()) {
+            if (this.currentWord[i].toLowerCase() === letter.toLowerCase() && this.hiddenWord[i] == "_") {
                 return true;
             }
         }
@@ -86,9 +86,7 @@ class Model {
 
     processGuess(letter) {
         const isCorrect = this.checkLetter(letter);
-        if (isCorrect && this.hiddenWord.includes(letter)) {
-            this.incorrectGuesses++;
-        } else if (isCorrect) {
+        if (isCorrect) {
             let updatedHiddenWord = '';
             for (let i = 0; i < this.currentWord.length; i++) {
                 if (this.currentWord[i] === letter) {
@@ -102,6 +100,7 @@ class Model {
             this.incorrectGuesses++;
         }
     }
+
     checkGameOver() {
         return this.incorrectGuesses >= this.maxChances;
     }
@@ -191,10 +190,10 @@ class Controller {
         this.model = model;
         this.view = view;
 
-        this.view.bindNewGame(this.handleNewGame);
+        this.view.bindNewGame(this.initializeGame);
         this.view.bindProcessGuess(this.handleProcessGuess);
 
-        this.handleNewGame();
+        this.initializeGame(); 
     }
 
     handleProcessGuess = async (letter) => {
@@ -218,11 +217,8 @@ class Controller {
         }
     }
 
-    handleNewGame = async () => {
-        await this.model.setNewWord();
-        this.model.resetGuessHistory();
-        this.view.updateGameDisplay(this.model.hiddenWord, this.model.incorrectGuesses, this.model.maxChances);
-        this.view.updateGuessHistory(this.model.guessHistory);
+    initializeGame = async () => {
+        await this.handleNewGame();
 
         this.model.clearTimer();
         const timeUp = await this.model.startTimer();
@@ -232,11 +228,19 @@ class Controller {
         }
     }
 
+    handleNewGame = async () => {
+        await this.model.setNewWord();
+        this.model.resetGuessHistory();
+        this.view.updateGameDisplay(this.model.hiddenWord, this.model.incorrectGuesses, this.model.maxChances);
+        this.view.updateGuessHistory(this.model.guessHistory);
+    }
+
+
     handleGameOver() {
         this.view.displayGameOver(this.model.correctWords);
         this.model.resetIncorrectGuesses();
         this.model.correctWords = 0; // Reset the correct words count for a new game
-        this.handleNewGame();
+        this.initializeGame();
     }
 }
 
