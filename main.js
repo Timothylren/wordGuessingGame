@@ -5,6 +5,9 @@ class Model {
         this.currentWord = '';
         this.hiddenWord = '';
         this.correctWords = 0;
+        this.guessHistory = new Set();
+        this.timer = null;
+        this.timeLimit = 60;
         this.fallbackWords =[
             "ballot",
             "soil",
@@ -32,14 +35,14 @@ class Model {
     async fetchRandomWord() {
         try {
             const response = await fetch('https://random-word-api.herokuapp.com/word');
-            if (response.ok) {
-                const [word] = await response.json();
-                return word;
-            } else {
+            // if (response.ok) {
+            //     const [word] = await response.json();
+            //     return word;
+            // } else {
                 throw new Error('API fetch error');
-            }
+            // }
         } catch (error) {
-            return fallbackWords[Math.floor(Math.random() * fallbackWords.length)];
+            return this.fallbackWords[Math.floor(Math.random() * this.fallbackWords.length)];
         }
     }
 
@@ -106,6 +109,30 @@ class Model {
     isWordComplete() {
         return !this.hiddenWord.includes('_');
     }
+
+    addToGuessHistory(letter, isCorrect) {
+        this.guessHistory.add({ letter, isCorrect });
+    }
+
+    isInGuessHistory(letter) {
+        return Array.from(this.guessHistory).some(item => item.letter === letter);
+    }
+
+    resetGuessHistory() {
+        this.guessHistory.clear();
+    }
+
+    startTimer() {
+        return new Promise((resolve) => {
+            this.timer = setTimeout(() => {
+                resolve(true);
+            }, this.timeLimit * 1000);
+        });
+    }
+
+    clearTimer() {
+        clearTimeout(this.timer);
+    }
     
 }
 
@@ -131,6 +158,26 @@ class View {
         });
     }
 
+    updateGuessHistory(guessHistory) {
+        const historyContainer = document.querySelector('.game__history');
+        historyContainer.innerHTML = '';
+
+        guessHistory.forEach(({ letter, isCorrect }) => {
+            const span = document.createElement('span');
+            span.textContent = letter;
+            span.className = `game__history-letter${isCorrect ? ' game__history-letter--correct' : ' game__history-letter--incorrect'}`;
+            historyContainer.appendChild(span);
+        });
+    }
+
+    displayRepeatGuessMessage() {
+        alert('You already guessed this letter');
+    }
+
+    displayGameOver(num){
+        alert(`Game Over! You have correctly guessed ${num} words`);
+    }
+
 
     updateGameDisplay(hiddenWord, incorrectGuesses, maxChances) {
         this.gameWord.textContent = hiddenWord;
@@ -150,25 +197,43 @@ class Controller {
         this.handleNewGame();
     }
 
-    handleNewGame = async () => {
-        await this.model.setNewWord();
-        this.view.updateGameDisplay(this.model.hiddenWord, this.model.incorrectGuesses, this.model.maxChances);
-    }
-
     handleProcessGuess = async (letter) => {
+        if (this.model.isInGuessHistory(letter)) {
+            this.view.displayRepeatGuessMessage();
+            return;
+        }
+
+        const isCorrect = this.model.checkLetter(letter);
+        this.model.addToGuessHistory(letter, isCorrect);
+
         this.model.processGuess(letter);
         this.view.updateGameDisplay(this.model.hiddenWord, this.model.incorrectGuesses, this.model.maxChances);
+        this.view.updateGuessHistory(this.model.guessHistory);
 
         if (this.model.isWordComplete()) {
-            this.model.incrementCorrectWords(); // Update the number of correctly guessed words
+            this.model.incrementCorrectWords();
             await this.handleNewGame();
         } else if (this.model.checkGameOver()) {
             this.handleGameOver();
         }
     }
 
+    handleNewGame = async () => {
+        await this.model.setNewWord();
+        this.model.resetGuessHistory();
+        this.view.updateGameDisplay(this.model.hiddenWord, this.model.incorrectGuesses, this.model.maxChances);
+        this.view.updateGuessHistory(this.model.guessHistory);
+
+        this.model.clearTimer();
+        const timeUp = await this.model.startTimer();
+
+        if (timeUp) {
+            this.handleGameOver();
+        }
+    }
+
     handleGameOver() {
-        alert(`Game over! You have guessed ${this.model.correctWords} words!`); // Display the number of correctly guessed words
+        this.view.displayGameOver(this.model.correctWords);
         this.model.resetIncorrectGuesses();
         this.model.correctWords = 0; // Reset the correct words count for a new game
         this.handleNewGame();

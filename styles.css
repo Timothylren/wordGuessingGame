@@ -54,3 +54,26 @@ body {
     font-size: 2rem;
     letter-spacing: 0.5rem;
 }
+
+.game__history {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .game__history-letter {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+  }
+  
+  .game__history-letter--correct {
+    background-color: #28a745;
+    color: #fff;
+  }
+  
+  .game__history-letter--incorrect {
+    background-color: #dc3545;
+    color: #fff;
+  }
