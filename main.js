@@ -4,6 +4,29 @@ class Model {
         this.incorrectGuesses = 0;
         this.currentWord = '';
         this.hiddenWord = '';
+        this.correctWords = 0;
+        this.fallbackWords =[
+            "ballot",
+            "soil",
+            "legislation",
+            "valley",
+            "country",
+            "nail",
+            "piano",
+            "speech",
+            "efflux",
+            "reason",
+            "alcohol",
+            "stable",
+            "slice",
+            "situation",
+            "profession",
+            "restaurant",
+            "pocket",
+            "satisfaction",
+            "condition",
+            "comfortable"
+        ];
     }
 
     async fetchRandomWord() {
@@ -30,10 +53,22 @@ class Model {
         return word.split('').map((char, idx) => concealedPositions.has(idx) ? '_' : char).join('');
     }
 
-    async startNewGame() {
-        this.incorrectGuesses = 0;
+    async handleNewGame(){
+        await this.setNewWord();
+        this.resetIncorrectGuesses();
+    }
+
+    async setNewWord() {
         this.currentWord = await this.fetchRandomWord();
         this.hiddenWord = this.hideRandomLetters(this.currentWord);
+    }
+
+    resetIncorrectGuesses() {
+        this.incorrectGuesses = 0;
+    }
+
+    incrementCorrectWords(){
+        this.correctWords++;
     }
 
     checkLetter(letter) {
@@ -48,7 +83,9 @@ class Model {
 
     processGuess(letter) {
         const isCorrect = this.checkLetter(letter);
-        if (isCorrect) {
+        if (isCorrect && this.hiddenWord.includes(letter)) {
+            this.incorrectGuesses++;
+        } else if (isCorrect) {
             let updatedHiddenWord = '';
             for (let i = 0; i < this.currentWord.length; i++) {
                 if (this.currentWord[i] === letter) {
@@ -63,7 +100,11 @@ class Model {
         }
     }
     checkGameOver() {
-        return this.incorrectGuesses >= this.maxChances || !this.hiddenWord.includes('_');
+        return this.incorrectGuesses >= this.maxChances;
+    }
+
+    isWordComplete() {
+        return !this.hiddenWord.includes('_');
     }
     
 }
@@ -110,22 +151,26 @@ class Controller {
     }
 
     handleNewGame = async () => {
-        await this.model.startNewGame();
+        await this.model.setNewWord();
         this.view.updateGameDisplay(this.model.hiddenWord, this.model.incorrectGuesses, this.model.maxChances);
     }
 
     handleProcessGuess = async (letter) => {
         this.model.processGuess(letter);
         this.view.updateGameDisplay(this.model.hiddenWord, this.model.incorrectGuesses, this.model.maxChances);
-    
-        if (this.model.checkGameOver()) {
+
+        if (this.model.isWordComplete()) {
+            this.model.incrementCorrectWords(); // Update the number of correctly guessed words
+            await this.handleNewGame();
+        } else if (this.model.checkGameOver()) {
             this.handleGameOver();
         }
     }
 
     handleGameOver() {
-        const correctWords = this.model.hiddenWord.split('').filter(char => char !== '_').length;
-        alert(`Game over! You have guessed ${correctWords} words!`);
+        alert(`Game over! You have guessed ${this.model.correctWords} words!`); // Display the number of correctly guessed words
+        this.model.resetIncorrectGuesses();
+        this.model.correctWords = 0; // Reset the correct words count for a new game
         this.handleNewGame();
     }
 }
