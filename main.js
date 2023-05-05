@@ -240,7 +240,7 @@ class Controller {
         this.view.displayGameOver(this.model.correctWords);
         this.model.resetIncorrectGuesses();
         this.model.correctWords = 0; // Reset the correct words count for a new game
-        this.initializeGame();
+        setTimeout(() => {this.initializeGame()}, 0);
     }
 }
 
