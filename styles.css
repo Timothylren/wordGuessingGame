@@ -18,11 +18,10 @@ body {
     align-items: center;
 }
 
-.header {
+header {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 1rem;
 }
 
 .game__title {
@@ -30,6 +29,7 @@ body {
 }
 
 .game__counter {
+    align-self: center;
     margin-bottom: 1rem;
 }
 
