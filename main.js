@@ -35,12 +35,12 @@ class Model {
     async fetchRandomWord() {
         try {
             const response = await fetch('https://random-word-api.herokuapp.com/word');
-            // if (response.ok) {
-            //     const [word] = await response.json();
-            //     return word;
-            // } else {
+            if (response.ok) {
+                const [word] = await response.json();
+                return word;
+            } else {
                 throw new Error('API fetch error');
-            // }
+            }
         } catch (error) {
             return this.fallbackWords[Math.floor(Math.random() * this.fallbackWords.length)];
         }
